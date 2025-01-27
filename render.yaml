@@ -1,8 +1,7 @@
-services
-  - type web
-    name link  # Uygulamanızın adını link olarak ayarladık
-    env node
-    buildCommand 
-      npm install
-      npm rebuild better-sqlite3
-    startCommand node app.js
+services:
+  - type: web
+   name: link
+   env: node
+   buildCommand: |
+       bash -c "/opt/render/project/nodes/node-22.12.0/bin/npm install --force && /opt/render/project/nodes/node-22.12.0/bin/npm rebuild sqlite3"
+   startCommand: node app.js
