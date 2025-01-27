@@ -139,8 +139,8 @@ app.get('/', (req, res) => {
 require('dotenv').config();
 
 // Şifre doğrulama middleware'i
-const dotenv = require('dotenv');
-dotenv.config();
+require('dotenv').config(); // Bu doğru kullanım.
+
 
 // Şifre kontrol middleware'ı
 function checkPassword(req, res, next) {
