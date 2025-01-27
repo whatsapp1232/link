@@ -2,18 +2,11 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const db = require('./database');
 const app = express();
-const port = process.env.PORT || 5000; // 8080 portu, 3000 yerine 80 olmalı çünkü Nginx 80 portundan yönlendiriyor.
-app.listen(port, () => {
-    console.log(`Sunucu http://localhost:${port} adresinde çalışıyor.`);
-});
+const port = process.env.PORT || 3000;
 
-
-
-// Body-parser middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// Ana sayfa (URL kısaltma formu)
 app.get('/', (req, res) => {
     res.send(`
         <style>
@@ -134,15 +127,13 @@ app.get('/', (req, res) => {
     `);
 });
 
-// Kısaltılmış linklerin listeleneceği sayfa
-// dotenv paketini yükleyin
+
 require('dotenv').config();
 
-// Şifre doğrulama middleware'i
-require('dotenv').config(); // Bu doğru kullanım.
 
+const dotenv = require('dotenv');
+dotenv.config();
 
-// Şifre kontrol middleware'ı
 function checkPassword(req, res, next) {
     const password = req.body.password || req.query.password || '';  // Şifreyi body veya query parametrelerinden al
     const storedPassword = process.env.PASSWORD;  // .env dosyasındaki şifreyi al
@@ -154,7 +145,7 @@ function checkPassword(req, res, next) {
     }
 }
 
-// Şifre girişi sayfası
+
 app.get('/login', (req, res) => {
     res.send(`
         <style>
@@ -219,8 +210,7 @@ app.get('/login', (req, res) => {
     `);
 });
 
-// /links sayfası için şifre doğrulama middleware'ini ekleyin
-// Kısaltılmış linklerin listeleneceği sayfa (şifre kontrolü ile)
+
 app.get('/links', checkPassword, (req, res) => {
     db.all('SELECT * FROM links', [], (err, rows) => {
         if (err) {
@@ -337,38 +327,38 @@ app.get('/links', checkPassword, (req, res) => {
         });
 
         linksHtml += `
-        </div>
-        <script>
-            function confirmDelete() {
-                return confirm("Bu URL'yi silmek istediğinize emin misiniz?");
-            }
-        </script>
+            </div>
+            <script>
+                function confirmDelete() {
+                    return confirm("Bu URL'yi silmek istediğinize emin misiniz?");
+                }
+            </script>
         `;
         res.send(linksHtml);
     });
 });
 
 
+app.post('/delete/:short_url', (req, res) => {
+    const short_url = req.params.short_url;
 
-// Kısa URL'yi düzenleme sayfası
+    db.run('DELETE FROM links WHERE short_url = ?', [short_url], function(err) {
+        if (err) {
+            return console.log(err.message);
+        }
+        res.redirect('/links');
+    });
+});
+
+
 app.get('/edit/:short_url', (req, res) => {
     const short_url = req.params.short_url;
 
-    try {
-        // Veritabanında kısa URL'yi arıyoruz
-        const row = db.prepare('SELECT * FROM links WHERE short_url = ?').get(short_url);
 
-        if (row) {
-            res.render('edit', { link: row });
-        } else {
-            res.status(404).send('Kısa URL bulunamadı.');
+    db.get('SELECT * FROM links WHERE short_url = ?', [short_url], (err, row) => {
+        if (err) {
+            return console.error(err.message);
         }
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Bir hata oluştu.');
-    }
-});
-
         if (row) {
             res.send(`
                 <style>
@@ -465,12 +455,12 @@ app.get('/edit/:short_url', (req, res) => {
     });
 });
 
-// Kısa URL'yi düzenleme işlemi
+
 app.post('/edit/:short_url', (req, res) => {
     const short_url = req.params.short_url;
     const target_url = req.body.target_url;
 
-    // Hedef URL'yi güncelleme
+
     db.run('UPDATE links SET target_url = ? WHERE short_url = ?', [target_url, short_url], function(err) {
         if (err) {
             return console.log(err.message);
@@ -479,7 +469,6 @@ app.post('/edit/:short_url', (req, res) => {
     });
 });
 
-// URL kısaltma işlemi
 app.post('/shorten', (req, res) => {
     let target_url = req.body.target_url.trim();
     let short_url = req.body.short_url.trim();
@@ -489,12 +478,10 @@ app.post('/shorten', (req, res) => {
         target_url = 'http://' + target_url;
     }
 
-    // Kısa URL alanı boşsa, otomatik bir kısa URL oluşturuyoruz
+
     if (!short_url) {
         short_url = generateShortUrl(6);  // 6 karakterli rastgele kısa URL oluştur
     }
-
-    // Kısa URL'nin benzersiz olup olmadığını kontrol ediyoruz
     db.get('SELECT * FROM links WHERE short_url = ?', [short_url], (err, row) => {
         if (err) {
             return console.log(err.message);
@@ -504,7 +491,7 @@ app.post('/shorten', (req, res) => {
             return res.send('<h2>Bu kısa URL zaten alınmış. Lütfen başka bir kısa URL deneyin.</h2>');
         }
 
-        // Kısa URL'yi veritabanına ekliyoruz
+      
         db.run('INSERT INTO links (short_url, target_url) VALUES (?, ?)', [short_url, target_url], function(err) {
             if (err) {
                 return console.log(err.message);
@@ -585,7 +572,7 @@ app.post('/shorten', (req, res) => {
 
 
 
-// Kısa URL ile yönlendirme
+
 app.get('/:short_url', (req, res) => {
     const short_url = req.params.short_url;
 
@@ -605,15 +592,9 @@ app.get('/:short_url', (req, res) => {
 
 app.listen(port, () => {
     console.log(`Sunucu http://localhost:${port} adresinde çalışıyor.`);
-}).on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-        console.error(`Port ${port} kullanılıyor. Farklı bir port deneniyor...`);
-        app.listen(3001); // Başka bir portu dener
-    }
 });
 
 
-// Kısa URL üretmek için yardımcı fonksiyon
 function generateShortUrl(length) {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let shortUrl = '';
