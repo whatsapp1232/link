@@ -1,23 +1,18 @@
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 
 // Veritabanı dosyasını açıyoruz (veritabanı yoksa oluşturulacak)
-const db = new sqlite3.Database('./url_shortener.db', (err) => {
-    if (err) {
-        console.error('Veritabanı bağlantısı hatası:', err.message);
-    } else {
-        console.log('Veritabanı bağlantısı başarılı');
-    }
-});
+const db = new Database('./url_shortener.db', { verbose: console.log });
 
 // URL tablosunu oluşturuyoruz
-db.run(`CREATE TABLE IF NOT EXISTS links (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    short_url TEXT NOT NULL UNIQUE,
-    target_url TEXT NOT NULL
-)`, (err) => {
-    if (err) {
-        console.log("Tablo oluşturulamadı:", err.message);
-    }
-});
+db.prepare(`
+    CREATE TABLE IF NOT EXISTS links (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        short_url TEXT NOT NULL UNIQUE,
+        target_url TEXT NOT NULL
+    )
+`).run();
 
+console.log('Veritabanı ve tablo oluşturuldu veya zaten mevcut');
+
+// Veritabanı bağlantısını dışa aktarıyoruz
 module.exports = db;

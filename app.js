@@ -350,28 +350,25 @@ app.get('/links', checkPassword, (req, res) => {
 
 
 
-// URL silme işlemi
-app.post('/delete/:short_url', (req, res) => {
-    const short_url = req.params.short_url;
-
-    // Kısa URL'yi veritabanından silme
-    db.run('DELETE FROM links WHERE short_url = ?', [short_url], function(err) {
-        if (err) {
-            return console.log(err.message);
-        }
-        res.redirect('/links');
-    });
-});
-
 // Kısa URL'yi düzenleme sayfası
 app.get('/edit/:short_url', (req, res) => {
     const short_url = req.params.short_url;
 
-    // Veritabanında kısa URL'yi arıyoruz
-    db.get('SELECT * FROM links WHERE short_url = ?', [short_url], (err, row) => {
-        if (err) {
-            return console.error(err.message);
+    try {
+        // Veritabanında kısa URL'yi arıyoruz
+        const row = db.prepare('SELECT * FROM links WHERE short_url = ?').get(short_url);
+
+        if (row) {
+            res.render('edit', { link: row });
+        } else {
+            res.status(404).send('Kısa URL bulunamadı.');
         }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Bir hata oluştu.');
+    }
+});
+
         if (row) {
             res.send(`
                 <style>
